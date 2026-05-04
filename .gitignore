@@ -7,3 +7,4 @@ build/
 .env.local
 .next/
 .cache/
+.dart_tool/
