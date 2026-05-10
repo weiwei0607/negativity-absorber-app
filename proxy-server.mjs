@@ -1,16 +1,19 @@
 import http from 'http';
 
 const PORT = process.env.PORT || 3000;
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'http://localhost';
 
-// Read API keys from environment variables
 const API_KEYS = {
   openai: process.env.OPENAI_API_KEY,
   moonshot: process.env.MOONSHOT_API_KEY,
   gemini: process.env.GEMINI_API_KEY,
 };
 
-function setCORS(res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+function setCORS(req, res) {
+  const origin = req.headers['origin'];
+  if (origin === ALLOWED_ORIGIN) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 }
@@ -61,7 +64,6 @@ async function proxyToProvider(provider, body) {
       const model = body.model || 'gemini-2.5-flash';
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-      // Transform OpenAI format to Gemini format
       const systemPrompt = body.messages?.find(m => m.role === 'system')?.content || '';
       const userPrompt = body.messages?.find(m => m.role === 'user')?.content || '';
 
@@ -97,7 +99,7 @@ async function proxyToProvider(provider, body) {
 }
 
 const server = http.createServer(async (req, res) => {
-  setCORS(res);
+  setCORS(req, res);
 
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
@@ -136,6 +138,7 @@ server.listen(PORT, () => {
   console.log(`🚀 AI Proxy running on http://localhost:${PORT}`);
   const configured = Object.keys(API_KEYS).filter(k => API_KEYS[k]);
   console.log(`📡 Configured providers: ${configured.join(', ') || 'NONE — please set API keys in .env file'}`);
+  console.log(`🔒 Allowed origin: ${ALLOWED_ORIGIN}`);
   console.log(`📖 POST /api/chat  ←  your Flutter app`);
   console.log(`   Body: { provider: "gemini", messages: [...], model: "...", temperature: 0.8, max_tokens: 300 }`);
 });
