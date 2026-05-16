@@ -9,8 +9,15 @@ const API_KEYS = {
   gemini: process.env.GEMINI_API_KEY,
 };
 
-function setCORS(res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+// Only allow requests from localhost (this server is for local dev use only)
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'http://localhost')
+  .split(',')
+  .map(o => o.trim());
+
+function setCORS(req, res) {
+  const origin = req.headers.origin || '';
+  const isAllowed = ALLOWED_ORIGINS.some(allowed => origin.startsWith(allowed));
+  res.setHeader('Access-Control-Allow-Origin', isAllowed ? origin : ALLOWED_ORIGINS[0]);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 }
@@ -97,7 +104,7 @@ async function proxyToProvider(provider, body) {
 }
 
 const server = http.createServer(async (req, res) => {
-  setCORS(res);
+  setCORS(req, res);
 
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
