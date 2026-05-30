@@ -111,8 +111,19 @@ const server = http.createServer(async (req, res) => {
   }
 
   let rawBody = '';
-  req.on('data', chunk => rawBody += chunk);
+  let bodySize = 0;
+  const MAX_BODY = 64 * 1024; // 64 KB
+  req.on('data', chunk => {
+    bodySize += chunk.length;
+    if (bodySize > MAX_BODY) {
+      sendJSON(res, 413, { error: 'Request body too large' });
+      req.destroy();
+      return;
+    }
+    rawBody += chunk;
+  });
   req.on('end', async () => {
+    if (res.writableEnded) return;
     try {
       const body = JSON.parse(rawBody);
       const provider = body.provider;
