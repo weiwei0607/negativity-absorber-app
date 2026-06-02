@@ -24,75 +24,97 @@ async function proxyToProvider(provider, body) {
   const apiKey = API_KEYS[provider];
   if (!apiKey) throw new Error(`No API key configured for ${provider}. Set ${provider.toUpperCase()}_API_KEY environment variable.`);
 
-  switch (provider) {
-    case 'openai': {
-      const res = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) {
-        const err = await res.text();
-        throw new Error(`OpenAI error ${res.status}: ${err}`);
-      }
-      const data = await res.json();
-      return data.choices[0].message.content;
-    }
-    case 'moonshot': {
-      const res = await fetch('https://api.moonshot.cn/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) {
-        const err = await res.text();
-        throw new Error(`Moonshot error ${res.status}: ${err}`);
-      }
-      const data = await res.json();
-      return data.choices[0].message.content;
-    }
-    case 'gemini': {
-      const model = body.model || 'gemini-2.5-flash';
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
 
-      // Transform OpenAI format to Gemini format
-      const systemPrompt = body.messages?.find(m => m.role === 'system')?.content || '';
-      const userPrompt = body.messages?.find(m => m.role === 'user')?.content || '';
-
-      const geminiBody = {
-        contents: [{
-          role: 'user',
-          parts: [{ text: userPrompt }]
-        }],
-        systemInstruction: {
-          parts: [{ text: systemPrompt }]
-        },
-        generationConfig: {
-          temperature: body.temperature ?? 0.8,
-          maxOutputTokens: body.max_tokens ?? 300,
+  try {
+    switch (provider) {
+      case 'openai': {
+        const res = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+          const err = await res.text();
+          throw new Error(`OpenAI error ${res.status}: ${err}`);
         }
-      };
-
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(geminiBody),
-      });
-      if (!res.ok) {
-        const err = await res.text();
-        throw new Error(`Gemini error ${res.status}: ${err}`);
+        const data = await res.json();
+        if (!data.choices?.[0]?.message?.content) {
+          throw new Error('Unexpected response shape from OpenAI');
+        }
+        return data.choices[0].message.content;
       }
-      const data = await res.json();
-      return data.candidates[0].content.parts[0].text;
+      case 'moonshot': {
+        const res = await fetch('https://api.moonshot.cn/v1/chat/completions', {
+          method: 'POST',
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+          const err = await res.text();
+          throw new Error(`Moonshot error ${res.status}: ${err}`);
+        }
+        const data = await res.json();
+        if (!data.choices?.[0]?.message?.content) {
+          throw new Error('Unexpected response shape from Moonshot');
+        }
+        return data.choices[0].message.content;
+      }
+      case 'gemini': {
+        const model = body.model || 'gemini-2.5-flash';
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+
+        // Transform OpenAI format to Gemini format
+        // Preserve ALL system and user messages, strip unknown roles
+        const systemMessages = body.messages?.filter(m => m.role === 'system') || [];
+        const userMessages = body.messages?.filter(m => m.role === 'user') || [];
+        const systemPrompt = systemMessages.map(m => m.content).join('\n');
+
+        const geminiBody = {
+          contents: userMessages.map(m => ({
+            role: 'user',
+            parts: [{ text: m.content }]
+          })),
+          ...(systemPrompt ? { systemInstruction: { parts: [{ text: systemPrompt }] } } : {}),
+          generationConfig: {
+            temperature: body.temperature ?? 0.8,
+            maxOutputTokens: body.max_tokens ?? 300,
+          }
+        };
+
+        const res = await fetch(url, {
+          method: 'POST',
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': apiKey,
+          },
+          body: JSON.stringify(geminiBody),
+        });
+        if (!res.ok) {
+          const err = await res.text();
+          throw new Error(`Gemini error ${res.status}: ${err}`);
+        }
+        const data = await res.json();
+        if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
+          throw new Error('Unexpected response shape from Gemini');
+        }
+        return data.candidates[0].content.parts[0].text;
+      }
+      default:
+        throw new Error(`Unknown provider: ${provider}`);
     }
-    default:
-      throw new Error(`Unknown provider: ${provider}`);
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
