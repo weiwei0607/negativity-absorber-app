@@ -10,15 +10,22 @@ class SessionNotifier extends StateNotifier<List<ChatSession>> {
   SessionNotifier() : super([]);
 
   Future<void> init() async {
-    await Hive.initFlutter();
-    if (!Hive.isAdapterRegistered(3)) {
-      Hive.registerAdapter(ChatMessageAdapter());
+    try {
+      await Hive.initFlutter();
+      if (!Hive.isAdapterRegistered(3)) {
+        Hive.registerAdapter(ChatMessageAdapter());
+      }
+      if (!Hive.isAdapterRegistered(4)) {
+        Hive.registerAdapter(ChatSessionAdapter());
+      }
+      _box = await Hive.openBox<ChatSession>(Constants.chatSessionsBoxName);
+      state = _box!.values.toList().reversed.toList();
+    } catch (e) {
+      // If the Hive box is corrupted, start with an empty session list
+      // so the app doesn't crash on startup.
+      _box = null;
+      state = [];
     }
-    if (!Hive.isAdapterRegistered(4)) {
-      Hive.registerAdapter(ChatSessionAdapter());
-    }
-    _box = await Hive.openBox<ChatSession>(Constants.chatSessionsBoxName);
-    state = _box!.values.toList().reversed.toList();
   }
 
   Future<void> addSession(ChatSession session) async {

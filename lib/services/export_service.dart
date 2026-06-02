@@ -42,7 +42,30 @@ class ExportService {
     );
   }
 
+  /// Returns true if the string contains CJK characters.
+  static bool _containsCjk(String text) {
+    // CJK Unified Ideographs, CJK Unified Ideographs Extension A,
+    // and common CJK punctuation ranges.
+    final cjkRegex = RegExp(r'[\u4e00-\u9fff\u3400-\u4dbf\u3000-\u303f]');
+    return cjkRegex.hasMatch(text);
+  }
+
   static Future<void> exportToPdf(List<ChatSession> sessions) async {
+    // Graceful degradation: if any session contains CJK text, fall back to
+    // a plain-text export because the default Helvetica font cannot render
+    // CJK characters. Embedding a CJK font via pw.Font.ttf(...) requires
+    // bundling a font file, which is not set up in this project.
+    final anyCjk = sessions.any((s) {
+      if (s.taggedEmotion != null && _containsCjk(s.taggedEmotion!.label)) {
+        return true;
+      }
+      return s.messages.any((m) => _containsCjk(m.content));
+    });
+
+    if (anyCjk) {
+      return exportToText(sessions);
+    }
+
     final pdf = pw.Document();
     // NOTE: pw.Font.helvetica() does not support CJK (Chinese/Japanese/Korean)
     // characters. For proper CJK support, bundle a CJK-compatible font (e.g.
@@ -103,25 +126,7 @@ class ExportService {
 
     final dir = await getTemporaryDirectory();
     final file = File('${dir.path}/ai_friend_chat_export.pdf');
-
-    try {
-      await file.writeAsBytes(await pdf.save());
-    } catch (e) {
-      // Fallback: generate a minimal PDF so the app doesn't crash on CJK text.
-      final fallback = pw.Document();
-      fallback.addPage(
-        pw.Page(
-          build: (context) => pw.Text(
-            'PDF generation failed because the content contains CJK characters '
-            'not supported by the default Helvetica font.\n\n'
-            'To fix this, bundle a CJK-compatible font (e.g., NotoSansSC) '
-            'and use pw.Font.ttf(...) instead of pw.Font.helvetica().\n\n'
-            'Error: $e',
-          ),
-        ),
-      );
-      await file.writeAsBytes(await fallback.save());
-    }
+    await file.writeAsBytes(await pdf.save());
 
     await Share.shareXFiles(
       [XFile(file.path, mimeType: 'application/pdf')],

@@ -15,24 +15,32 @@ class AiService {
     String? provider,
     String? model,
   }) async {
-    final systemPrompt = companion.buildSystemPrompt(memorySummary);
+    try {
+      final systemPrompt = companion.buildSystemPrompt(memorySummary);
 
-    final response = await _dio.post(
-      '$_proxyUrl/api/chat',
-      options: Options(headers: {'Content-Type': 'application/json'}),
-      data: {
-        'provider': provider ?? 'gemini',
-        'model': model,
-        'messages': [
-          {'role': 'system', 'content': systemPrompt},
-          {'role': 'user', 'content': userMessage},
-        ],
-        'temperature': 0.8,
-        'max_tokens': 300,
-      },
-    );
+      final response = await _dio.post(
+        '$_proxyUrl/api/chat',
+        options: Options(headers: {'Content-Type': 'application/json'}),
+        data: {
+          'provider': provider ?? 'gemini',
+          'model': model,
+          'messages': [
+            {'role': 'system', 'content': systemPrompt},
+            {'role': 'user', 'content': userMessage},
+          ],
+          'temperature': 0.8,
+          'max_tokens': 300,
+        },
+      );
 
-    return (response.data['content'] as String).trim();
+      final content = response.data['content'];
+      if (content == null || content is! String) {
+        return '';
+      }
+      return content.trim();
+    } catch (e) {
+      return '';
+    }
   }
 
   /// Update memory profile based on conversation history
@@ -43,23 +51,31 @@ class AiService {
     String? provider,
     String? model,
   }) async {
-    final prompt = companion.buildMemoryUpdatePrompt(conversation, existingMemory);
+    try {
+      final prompt = companion.buildMemoryUpdatePrompt(conversation, existingMemory);
 
-    final response = await _dio.post(
-      '$_proxyUrl/api/chat',
-      options: Options(headers: {'Content-Type': 'application/json'}),
-      data: {
-        'provider': provider ?? 'gemini',
-        'model': model,
-        'messages': [
-          {'role': 'system', 'content': '你是一個擅長整理記憶的助手。'},
-          {'role': 'user', 'content': prompt},
-        ],
-        'temperature': 0.5,
-        'max_tokens': 500,
-      },
-    );
+      final response = await _dio.post(
+        '$_proxyUrl/api/chat',
+        options: Options(headers: {'Content-Type': 'application/json'}),
+        data: {
+          'provider': provider ?? 'gemini',
+          'model': model,
+          'messages': [
+            {'role': 'system', 'content': '你是一個擅長整理記憶的助手。'},
+            {'role': 'user', 'content': prompt},
+          ],
+          'temperature': 0.5,
+          'max_tokens': 500,
+        },
+      );
 
-    return (response.data['content'] as String).trim();
+      final content = response.data['content'];
+      if (content == null || content is! String) {
+        return '';
+      }
+      return content.trim();
+    } catch (e) {
+      return '';
+    }
   }
 }

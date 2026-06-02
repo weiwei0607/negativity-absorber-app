@@ -8,7 +8,6 @@ import '../models/chat_session.dart';
 import '../models/emotion_type.dart';
 import '../providers/chat_provider.dart';
 import '../providers/session_provider.dart';
-import '../providers/memory_provider.dart';
 import '../providers/settings_provider.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
@@ -35,6 +34,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   void initState() {
     super.initState();
     _initSpeech();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkForNewAiMessages());
   }
 
   Future<void> _initSpeech() async {
@@ -183,6 +183,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (chatState.messages.isEmpty) return;
 
     // Ask for emotion tag
+    if (!mounted) return;
     final emotion = await showDialog<EmotionType>(
       context: context,
       builder: (context) => AlertDialog(
@@ -244,7 +245,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) => _checkForNewAiMessages());
     final chatState = ref.watch(chatProvider);
     final settings = ref.watch(settingsProvider);
     final companionName = settings.companionName;

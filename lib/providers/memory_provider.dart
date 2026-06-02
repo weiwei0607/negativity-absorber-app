@@ -15,14 +15,21 @@ class MemoryNotifier extends StateNotifier<MemoryState> {
   MemoryNotifier() : super(const MemoryState());
 
   Future<void> init() async {
-    await Hive.initFlutter();
-    if (!Hive.isAdapterRegistered(5)) {
-      Hive.registerAdapter(MemoryProfileAdapter());
-    }
-    _box = await Hive.openBox<MemoryProfile>(Constants.memoryBoxName);
-    final profile = _box!.get('default');
-    if (profile != null) {
-      state = MemoryState(summary: profile.summary);
+    try {
+      await Hive.initFlutter();
+      if (!Hive.isAdapterRegistered(5)) {
+        Hive.registerAdapter(MemoryProfileAdapter());
+      }
+      _box = await Hive.openBox<MemoryProfile>(Constants.memoryBoxName);
+      final profile = _box!.get('default');
+      if (profile != null) {
+        state = MemoryState(summary: profile.summary);
+      }
+    } catch (e) {
+      // If the Hive box is corrupted, start with an empty memory so the
+      // app doesn't crash on startup.
+      _box = null;
+      state = const MemoryState();
     }
   }
 
