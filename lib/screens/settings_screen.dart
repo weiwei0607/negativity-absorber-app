@@ -4,7 +4,6 @@ import '../providers/settings_provider.dart';
 import '../services/notification_service.dart';
 import '../services/pin_service.dart';
 import '../providers/theme_provider.dart';
-import '../models/ai_companion.dart';
 import 'relaxation_screen.dart';
 import 'pin_lock_screen.dart';
 import 'goals_screen.dart';
@@ -20,11 +19,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _reminderEnabled = false;
   TimeOfDay _reminderTime = const TimeOfDay(hour: 21, minute: 0);
   bool _pinEnabled = false;
+  late TextEditingController _companionNameController;
+  late TextEditingController _proxyUrlController;
 
   @override
   void initState() {
     super.initState();
     _loadSettings();
+    final settings = ref.read(settingsProvider);
+    _companionNameController = TextEditingController(text: settings.companionName);
+    _proxyUrlController = TextEditingController(text: settings.proxyUrl);
+  }
+
+  @override
+  void dispose() {
+    _companionNameController.dispose();
+    _proxyUrlController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadSettings() async {
@@ -236,7 +247,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   const Text('AI 朋友', style: TextStyle(fontSize: 14)),
                   const SizedBox(height: 12),
                   TextField(
-                    controller: TextEditingController(text: settings.companionName),
+                    controller: _companionNameController,
                     decoration: const InputDecoration(
                       labelText: '朋友名字',
                       hintText: '例如：阿樹',
@@ -288,7 +299,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                     ),
                   TextField(
-                    controller: TextEditingController(text: settings.proxyUrl),
+                    controller: _proxyUrlController,
                     decoration: const InputDecoration(
                       labelText: '代理伺服器網址',
                       hintText: 'http://localhost:3000',
@@ -301,7 +312,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
-                    value: settings.aiProvider,
+                    initialValue: settings.aiProvider,
                     decoration: const InputDecoration(labelText: 'AI 提供者'),
                     items: const [
                       DropdownMenuItem(value: 'gemini', child: Text('Google Gemini')),
@@ -316,7 +327,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
-                    value: settings.aiModel,
+                    initialValue: settings.aiModel,
                     decoration: const InputDecoration(labelText: '模型'),
                     items: _getModelItems(settings.aiProvider),
                     onChanged: (value) {

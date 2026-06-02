@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/material.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
@@ -45,6 +44,9 @@ class ExportService {
 
   static Future<void> exportToPdf(List<ChatSession> sessions) async {
     final pdf = pw.Document();
+    // NOTE: pw.Font.helvetica() does not support CJK (Chinese/Japanese/Korean)
+    // characters. For proper CJK support, bundle a CJK-compatible font (e.g.
+    // NotoSansSC) and load it via pw.Font.ttf(...).
     final font = pw.Font.helvetica();
     final fontBold = pw.Font.helveticaBold();
 
@@ -101,7 +103,25 @@ class ExportService {
 
     final dir = await getTemporaryDirectory();
     final file = File('${dir.path}/ai_friend_chat_export.pdf');
-    await file.writeAsBytes(await pdf.save());
+
+    try {
+      await file.writeAsBytes(await pdf.save());
+    } catch (e) {
+      // Fallback: generate a minimal PDF so the app doesn't crash on CJK text.
+      final fallback = pw.Document();
+      fallback.addPage(
+        pw.Page(
+          build: (context) => pw.Text(
+            'PDF generation failed because the content contains CJK characters '
+            'not supported by the default Helvetica font.\n\n'
+            'To fix this, bundle a CJK-compatible font (e.g., NotoSansSC) '
+            'and use pw.Font.ttf(...) instead of pw.Font.helvetica().\n\n'
+            'Error: $e',
+          ),
+        ),
+      );
+      await file.writeAsBytes(await fallback.save());
+    }
 
     await Share.shareXFiles(
       [XFile(file.path, mimeType: 'application/pdf')],
