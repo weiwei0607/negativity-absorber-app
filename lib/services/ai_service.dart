@@ -3,79 +3,86 @@ import '../models/ai_companion.dart';
 
 class AiService {
   final Dio _dio = Dio(BaseOptions(connectTimeout: const Duration(seconds: 30)));
-  final String _proxyUrl;
+  final String _apiKey;
+  final String _model;
 
-  AiService({String proxyUrl = 'http://localhost:3000'}) : _proxyUrl = proxyUrl;
+  static const String _apiBase = 'https://generativelanguage.googleapis.com/v1beta';
 
-  /// Send a single chat message and get AI response
+  AiService({required String apiKey, String model = 'gemini-2.5-flash'})
+      : _apiKey = apiKey,
+        _model = model;
+
   Future<String> sendMessage({
     required String userMessage,
     required AiCompanion companion,
     String? memorySummary,
-    String? provider,
-    String? model,
   }) async {
     try {
       final systemPrompt = companion.buildSystemPrompt(memorySummary);
 
       final response = await _dio.post(
-        '$_proxyUrl/api/chat',
+        '$_apiBase/models/$_model:generateContent?key=$_apiKey',
         options: Options(headers: {'Content-Type': 'application/json'}),
         data: {
-          'provider': provider ?? 'gemini',
-          'model': model,
-          'messages': [
-            {'role': 'system', 'content': systemPrompt},
-            {'role': 'user', 'content': userMessage},
+          'systemInstruction': {
+            'parts': [{'text': systemPrompt}],
+          },
+          'contents': [
+            {
+              'parts': [{'text': userMessage}],
+            }
           ],
-          'temperature': 0.8,
-          'max_tokens': 300,
+          'generationConfig': {
+            'temperature': 0.8,
+            'maxOutputTokens': 300,
+          },
         },
       );
 
-      final content = response.data['content'];
-      if (content == null || content is! String) {
-        return '';
-      }
-      return content.trim();
+      final text = _extractText(response.data);
+      return text ?? '';
     } catch (e) {
       return '';
     }
   }
 
-  /// Update memory profile based on conversation history
   Future<String> updateMemory({
     required String conversation,
     required AiCompanion companion,
     String? existingMemory,
-    String? provider,
-    String? model,
   }) async {
     try {
       final prompt = companion.buildMemoryUpdatePrompt(conversation, existingMemory);
 
       final response = await _dio.post(
-        '$_proxyUrl/api/chat',
+        '$_apiBase/models/$_model:generateContent?key=$_apiKey',
         options: Options(headers: {'Content-Type': 'application/json'}),
         data: {
-          'provider': provider ?? 'gemini',
-          'model': model,
-          'messages': [
-            {'role': 'system', 'content': '你是一個擅長整理記憶的助手。'},
-            {'role': 'user', 'content': prompt},
+          'contents': [
+            {
+              'parts': [{'text': prompt}],
+            }
           ],
-          'temperature': 0.5,
-          'max_tokens': 500,
+          'generationConfig': {
+            'temperature': 0.5,
+            'maxOutputTokens': 500,
+          },
         },
       );
 
-      final content = response.data['content'];
-      if (content == null || content is! String) {
-        return '';
-      }
-      return content.trim();
+      final text = _extractText(response.data);
+      return text ?? '';
     } catch (e) {
       return '';
     }
+  }
+
+  String? _extractText(dynamic data) {
+    final candidates = data?['candidates'] as List<dynamic>?;
+    final first = candidates?.firstOrNull as Map<String, dynamic>?;
+    final content = first?['content'] as Map<String, dynamic>?;
+    final parts = content?['parts'] as List<dynamic>?;
+    final text = parts?.firstOrNull?['text'] as String?;
+    return text?.trim();
   }
 }

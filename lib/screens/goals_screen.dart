@@ -79,7 +79,7 @@ class GoalsScreen extends ConsumerWidget {
                                   ),
                                 ),
                               ),
-                              if (isAchieved && !isExpired)
+                              if (isAchieved)
                                 const Chip(
                                   label: Text('達成 🎉', style: TextStyle(fontSize: 11)),
                                   backgroundColor: Color(0xFF00B894),
@@ -125,11 +125,13 @@ class GoalsScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            isExpired
-                                ? '目標期間已結束'
-                                : isAchieved
-                                    ? '太棒了！你控制在目標範圍內 👏'
-                                    : '已達到目標上限，注意情緒照顧',
+                            isExpired && isAchieved
+                                ? '目標達成！期間內成功控制了情緒 👏'
+                                : isExpired
+                                    ? '目標期間已結束'
+                                    : isAchieved
+                                        ? '太棒了！你控制在目標範圍內 👏'
+                                        : '已達到目標上限，注意情緒照顧',
                             style: TextStyle(
                               fontSize: 12,
                               color: isAchieved ? const Color(0xFF00B894) : const Color(0xFFE94560),
@@ -212,8 +214,8 @@ class GoalsScreen extends ConsumerWidget {
               final days = int.tryParse(daysController.text) ?? 7;
               final emotion = selectedEmotion.value;
               final title = emotion != null
-                  ? '每 ${days}天 ${emotion.label} 不超過 ${maxCount} 次'
-                  : '每 ${days}天 負面情緒 不超過 ${maxCount} 次';
+                  ? '每 $days天 ${emotion.label} 不超過 $maxCount 次'
+                  : '每 $days天 負面情緒 不超過 $maxCount 次';
 
               final goal = Goal(
                 id: DateTime.now().millisecondsSinceEpoch.toString(),

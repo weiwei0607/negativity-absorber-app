@@ -315,7 +315,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   Widget _buildEmptyState() {
     final settings = ref.watch(settingsProvider);
-    final hasApi = settings.hasProxyConfig;
+    final hasApi = settings.hasApiKey;
 
     return Center(
       child: Column(
@@ -427,7 +427,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   Widget _buildInputArea() {
     final settings = ref.watch(settingsProvider);
-    final hasApi = settings.hasProxyConfig;
+    final hasApi = settings.hasApiKey;
 
     return SafeArea(
       child: Container(

@@ -20,7 +20,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   TimeOfDay _reminderTime = const TimeOfDay(hour: 21, minute: 0);
   bool _pinEnabled = false;
   late TextEditingController _companionNameController;
-  late TextEditingController _proxyUrlController;
+  late TextEditingController _apiKeyController;
 
   @override
   void initState() {
@@ -28,13 +28,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _loadSettings();
     final settings = ref.read(settingsProvider);
     _companionNameController = TextEditingController(text: settings.companionName);
-    _proxyUrlController = TextEditingController(text: settings.proxyUrl);
+    _apiKeyController = TextEditingController(text: settings.apiKey);
   }
 
   @override
   void dispose() {
     _companionNameController.dispose();
-    _proxyUrlController.dispose();
+    _apiKeyController.dispose();
     super.dispose();
   }
 
@@ -276,7 +276,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (!settings.hasProxyConfig)
+                  if (!settings.hasApiKey)
                     Container(
                       margin: const EdgeInsets.only(bottom: 12),
                       padding: const EdgeInsets.all(12),
@@ -299,14 +299,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                     ),
                   TextField(
-                    controller: _proxyUrlController,
+                    controller: _apiKeyController,
                     decoration: const InputDecoration(
-                      labelText: '代理伺服器網址',
-                      hintText: 'http://localhost:3000',
+                      labelText: 'Gemini API Key',
+                      hintText: '在 Google AI Studio 取得',
                     ),
                     onChanged: (value) {
                       ref.read(settingsProvider.notifier).save(
-                            settings.copyWith(proxyUrl: value),
+                            settings.copyWith(apiKey: value),
                           );
                     },
                   ),

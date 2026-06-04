@@ -53,7 +53,6 @@ class GoalNotifier extends StateNotifier<List<Goal>> {
   }
 
   double getProgress(Goal goal, List<ChatSession> sessions) {
-    final now = DateTime.now();
     final relevant = sessions.where((s) {
       final d = s.startedAt;
       return d.isAfter(goal.createdAt) &&

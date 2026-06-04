@@ -53,23 +53,21 @@ class ChatNotifier extends StateNotifier<ChatState> {
     final settings = _ref.read(settingsProvider);
     final memory = _ref.read(memoryProvider);
 
-    if (!settings.hasProxyConfig) {
+    if (!settings.hasApiKey) {
       state = state.copyWith(
         isLoading: false,
-        error: '尚未設定 AI 代理，請到設定頁面設定 Proxy URL。',
+        error: '尚未設定 Gemini API Key，請到設定頁面設定。',
       );
       return;
     }
 
     try {
       final companion = AiCompanion(name: settings.companionName);
-      final ai = AiService(proxyUrl: settings.proxyUrl);
+      final ai = AiService(apiKey: settings.apiKey, model: settings.aiModel ?? 'gemini-2.5-flash');
       final response = await ai.sendMessage(
         userMessage: text.trim(),
         companion: companion,
         memorySummary: memory.summary.isNotEmpty ? memory.summary : null,
-        provider: settings.aiProvider,
-        model: settings.aiModel,
       );
 
       final aiMessage = ChatMessage(
@@ -86,7 +84,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        error: 'AI 回應失敗：$e\n\n請確認代理伺服器正在運行（node proxy-server.mjs）',
+        error: 'AI 回應失敗：$e\n\n請確認 API Key 是否正確，或稍後再試。',
       );
     }
   }
@@ -108,17 +106,15 @@ class ChatNotifier extends StateNotifier<ChatState> {
 
     String? updatedMemory;
 
-    if (settings.hasProxyConfig) {
+    if (settings.hasApiKey) {
       try {
         final conversation = _formatConversationForMemory(state.messages);
         final companion = AiCompanion(name: settings.companionName);
-        final ai = AiService(proxyUrl: settings.proxyUrl);
+        final ai = AiService(apiKey: settings.apiKey, model: settings.aiModel ?? 'gemini-2.5-flash');
         updatedMemory = await ai.updateMemory(
           conversation: conversation,
           companion: companion,
           existingMemory: memory.summary.isNotEmpty ? memory.summary : null,
-          provider: settings.aiProvider,
-          model: settings.aiModel,
         );
         await memoryNotifier.update(updatedMemory);
       } catch (e) {

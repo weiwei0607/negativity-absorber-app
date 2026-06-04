@@ -3,26 +3,26 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AppSettings {
-  final String proxyUrl;
+  final String apiKey;
   final String aiProvider;
   final String? aiModel;
   final String companionName;
 
   const AppSettings({
-    this.proxyUrl = 'http://localhost:3000',
+    this.apiKey = '',
     this.aiProvider = 'gemini',
     this.aiModel = 'gemini-2.5-flash',
     this.companionName = '阿樹',
   });
 
   AppSettings copyWith({
-    String? proxyUrl,
+    String? apiKey,
     String? aiProvider,
     String? aiModel,
     String? companionName,
   }) {
     return AppSettings(
-      proxyUrl: proxyUrl ?? this.proxyUrl,
+      apiKey: apiKey ?? this.apiKey,
       aiProvider: aiProvider ?? this.aiProvider,
       aiModel: aiModel ?? this.aiModel,
       companionName: companionName ?? this.companionName,
@@ -30,7 +30,7 @@ class AppSettings {
   }
 
   Map<String, dynamic> toJson() => {
-        'proxyUrl': proxyUrl,
+        'apiKey': apiKey,
         'aiProvider': aiProvider,
         'aiModel': aiModel,
         'companionName': companionName,
@@ -38,14 +38,14 @@ class AppSettings {
 
   factory AppSettings.fromJson(Map<String, dynamic> json) {
     return AppSettings(
-      proxyUrl: json['proxyUrl'] as String? ?? 'http://localhost:3000',
+      apiKey: json['apiKey'] as String? ?? '',
       aiProvider: json['aiProvider'] as String? ?? 'gemini',
       aiModel: json['aiModel'] as String?,
       companionName: json['companionName'] as String? ?? '阿樹',
     );
   }
 
-  bool get hasProxyConfig => proxyUrl.isNotEmpty && aiProvider.isNotEmpty;
+  bool get hasApiKey => apiKey.isNotEmpty;
 }
 
 class SettingsNotifier extends StateNotifier<AppSettings> {
