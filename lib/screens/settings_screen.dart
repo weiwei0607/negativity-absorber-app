@@ -268,7 +268,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          _buildSectionTitle('AI 代理設定（必要）'),
+          _buildSectionTitle('AI 設定（必要）'),
           const SizedBox(height: 8),
           Card(
             child: Padding(
@@ -291,7 +291,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              '尚未設定 AI 代理，請先啟動代理伺服器（node proxy-server.mjs）',
+                              '尚未設定 API Key，請在下方輸入你的 API Key',
                               style: TextStyle(color: Colors.orange, fontSize: 13),
                             ),
                           ),
@@ -300,9 +300,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                   TextField(
                     controller: _apiKeyController,
-                    decoration: const InputDecoration(
-                      labelText: 'Gemini API Key',
-                      hintText: '在 Google AI Studio 取得',
+                    decoration: InputDecoration(
+                      labelText: 'API Key',
+                      hintText: _getApiKeyHint(settings.aiProvider),
                     ),
                     onChanged: (value) {
                       ref.read(settingsProvider.notifier).save(
@@ -320,14 +320,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       DropdownMenuItem(value: 'moonshot', child: Text('Moonshot (Kimi)')),
                     ],
                     onChanged: (value) {
+                      // 切換提供者時重設模型，避免沿用不屬於新提供者的模型
                       ref.read(settingsProvider.notifier).save(
-                            settings.copyWith(aiProvider: value),
+                            AppSettings(
+                              apiKey: settings.apiKey,
+                              aiProvider: value ?? 'gemini',
+                              companionName: settings.companionName,
+                            ),
                           );
                     },
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
-                    initialValue: settings.aiModel,
+                    initialValue: _getModelItems(settings.aiProvider)
+                            .any((item) => item.value == settings.aiModel)
+                        ? settings.aiModel
+                        : null,
                     decoration: const InputDecoration(labelText: '模型'),
                     items: _getModelItems(settings.aiProvider),
                     onChanged: (value) {
@@ -338,7 +346,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                   const SizedBox(height: 12),
                   const Text(
-                    'API Key 不再儲存在 App 中，而是放在 proxy-server.mjs 的 .env 檔案裡。這樣 key 不會暴露在程式碼中。',
+                    'API Key 只儲存在你的裝置上，不會上傳到任何伺服器。',
                     style: TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ],
@@ -387,6 +395,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
+  String _getApiKeyHint(String provider) {
+    switch (provider) {
+      case 'openai':
+        return '在 platform.openai.com 取得';
+      case 'moonshot':
+        return '在 platform.moonshot.cn 取得';
+      default:
+        return '在 Google AI Studio 取得';
+    }
+  }
+
   List<DropdownMenuItem<String>> _getModelItems(String? provider) {
     switch (provider) {
       case 'openai':
@@ -431,8 +450,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           '負能量吸收器非常重視你的隱私：\n\n'
           '• 所有日記內容都儲存在你的裝置上（使用 Hive 本地資料庫）\n'
           '• 不會上傳任何資料到伺服器\n'
-          '• 對話內容會先傳送到你的 AI 代理伺服器，再由代理轉發到 AI 服務商\n'
-          '• API Key 儲存在代理伺服器的環境變數中，不會出現在 App 裡\n'
+          '• 對話內容會直接傳送到你選擇的 AI 服務商（Gemini / OpenAI / Moonshot）\n'
+          '• API Key 只儲存在你的裝置上，不會出現在程式碼或伺服器中\n'
           '• 記憶摘要儲存在你的裝置上，不會上傳到任何伺服器\n'
           '• 對話紀錄儲存在你的裝置上（Hive 本地資料庫）\n\n'
           '你的祕密，只有你和你的裝置知道 🤫',

@@ -8,3 +8,6 @@ build/
 .next/
 .cache/
 .dart_tool/
+.idea/
+*.iml
+.flutter-plugins-dependencies

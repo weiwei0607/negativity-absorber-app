@@ -2,10 +2,12 @@
 
 > 一個會「聽你抱怨、幫你消化、陪你轉念」的 AI 情緒夥伴
 
+**線上 Demo**：https://weiwei0607.github.io/negativity-absorber-app/
+
 <p align="center">
   <img src="https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter" />
   <img src="https://img.shields.io/badge/Dart-3.x-0175C2?logo=dart" />
-  <img src="https://img.shields.io/badge/AI-OpenAI%20%7C%20Moonshot-412991?logo=openai" />
+  <img src="https://img.shields.io/badge/AI-Gemini%20%7C%20OpenAI%20%7C%20Moonshot-412991?logo=google" />
   <img src="https://img.shields.io/badge/State-Riverpod-137CBD?logo=flutter" />
   <img src="https://img.shields.io/badge/License-MIT-green.svg" />
 </p>
@@ -80,8 +82,8 @@
 ┌─────────────────────────────────────────────────────────────┐
 │  🌐 AI 對話層（多模型支援）                                   │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
-│  │ OpenAI      │  │ Moonshot    │  │ 自訂 API    │         │
-│  │ GPT-4o-mini │  │ 月之暗面     │  │ 任意端點    │         │
+│  │ Google      │  │ OpenAI      │  │ Moonshot    │         │
+│  │ Gemini      │  │ GPT-4o-mini │  │ 月之暗面     │         │
 │  └─────────────┘  └─────────────┘  └─────────────┘         │
 │                         ↓                                   │
 │  統一接口：三階段 JSON Schema 輸出                            │
@@ -114,10 +116,10 @@
 |----|------|
 | **前端框架** | Flutter 3.x + Dart |
 | **狀態管理** | Riverpod |
-| **AI 對接** | OpenAI API / Moonshot API / 自訂 API（統一抽象層）|
+| **AI 對接** | Google Gemini / OpenAI / Moonshot（統一抽象層）|
 | **語音輸入** | speech_to_text |
 | **動畫效果** | Confetti + 自訂動畫 |
-| **本地存儲** | SharedPreferences |
+| **本地存儲** | Hive + SharedPreferences |
 | **主題系統** | 深色模式 + 動態配色 |
 | **安全** | PIN 碼鎖定 |
 
@@ -142,28 +144,24 @@
 
 ```bash
 # 1. 克隆專案
-git clone https://github.com/yourname/negativity_absorber.git
-cd negativity_absorber
+git clone https://github.com/weiwei0607/negativity-absorber-app.git
+cd negativity-absorber-app
 
 # 2. 安裝依賴
 flutter pub get
 
-# 3. 設定 API Key（複製範例檔案後填入）
-cp .env.example .env
-
-# 4. 執行
+# 3. 執行
 flutter run
 ```
 
-### 環境變數設定（`.env`）
+### API Key 設定
 
-```
-OPENAI_API_KEY=sk-...
-MOONSHOT_API_KEY=sk-...
-# 或自訂 API
-CUSTOM_API_URL=https://your-api.com/v1/chat/completions
-CUSTOM_API_KEY=...
-```
+不需要 `.env` 檔案。打開 App 後到「設定 → AI 設定」，選擇 AI 提供者（Gemini / OpenAI / Moonshot）並貼上你的 API Key 即可。Key 只儲存在你的裝置上。
+
+取得 API Key：
+- Google Gemini：https://aistudio.google.com/app/apikey
+- OpenAI：https://platform.openai.com/api-keys
+- Moonshot / Kimi：https://platform.moonshot.cn/console/api-keys
 
 ---
 

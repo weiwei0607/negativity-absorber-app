@@ -56,14 +56,18 @@ class ChatNotifier extends StateNotifier<ChatState> {
     if (!settings.hasApiKey) {
       state = state.copyWith(
         isLoading: false,
-        error: '尚未設定 Gemini API Key，請到設定頁面設定。',
+        error: '尚未設定 API Key，請到設定頁面設定。',
       );
       return;
     }
 
     try {
       final companion = AiCompanion(name: settings.companionName);
-      final ai = AiService(apiKey: settings.apiKey, model: settings.aiModel ?? 'gemini-2.5-flash');
+      final ai = AiService(
+        apiKey: settings.apiKey,
+        provider: settings.aiProvider,
+        model: settings.aiModel,
+      );
       final response = await ai.sendMessage(
         userMessage: text.trim(),
         companion: companion,
@@ -110,7 +114,11 @@ class ChatNotifier extends StateNotifier<ChatState> {
       try {
         final conversation = _formatConversationForMemory(state.messages);
         final companion = AiCompanion(name: settings.companionName);
-        final ai = AiService(apiKey: settings.apiKey, model: settings.aiModel ?? 'gemini-2.5-flash');
+        final ai = AiService(
+          apiKey: settings.apiKey,
+          provider: settings.aiProvider,
+          model: settings.aiModel,
+        );
         updatedMemory = await ai.updateMemory(
           conversation: conversation,
           companion: companion,
